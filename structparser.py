@@ -1,26 +1,33 @@
 import types
+from numpy import append
 
 """
+name
+name, parser
+name, parser, defaulter
 
-Att(name) > required string attribute
-Att(name,parser) > required attribute with a parser
-Att(name,parser, defaulter) > optional attribute with a parser
-Att(name, parser, None) > optional attribute with no default value
-Att(name, None, None) > optional attribute with no default value, no parser > string
+parser or defaulter can be None
 
-				Defaulter and parser sees its place in the document
-				
-Leaf has exactly the same syntax
-
+-Att(name) > required string attribute
+-Att(name,parser) > required attribute with a parser
+-Att(name,parser, defaulter) > optional attribute with a parser
+-Att(name, parser, None) > optional attribute with no default value
+-Att(name, None, None) > optional attribute with no default value, no parser > string
+-
+-				Defaulter and parser sees its place in the document
+-				
+-Leaf has exactly the same syntax
 """
 
 class StructParser:
+  debug = True
   found = False
   okay = False  
   def __init__(self,name,*args):
-    children = filter(lambda x: isinstance(x,StructParser), args)
+    self.children = filter(lambda x: isinstance(x,StructParser), args)
     args = filter(lambda x: not(isinstance(x,StructParser)), args)
-    self.name=name
+    self.args = args
+    self.name = name
     if len(args)==0:
       self.required=True
       self.parser = lambda x,c,cc : x 
@@ -40,16 +47,19 @@ class StructParser:
         self.defaulter = None
       elif not(args[1] is None):
         self.defaulter = lambda c,cc : args[1]
-
   def parseDict(self,context,contextcounter):
-    print "====="
-    print "We are in context\n ", context,"\n\n"
-    print "Contextcounter:", contextcounter
+    if self.debug:
+      print "====="
+      print "Class: %s" % self.__class__.__name__
+      print "We are in context\n ", context[0],"\n\n"
+      print "Contextcounter:", contextcounter
+      print "Name: %s" % self.name
     d=context[0]
     if not(isinstance(d,types.DictType)):
-      raise "StructParser instance %s is expecting a dict as primary context" %  self.__class__.__name__
+      raise Exception("StructParser instance %s is expecting a dict as primary context" %  self.__class__.__name__)
     subject = self.matches(context,contextcounter)
-    print "subject: ", subject
+    if self.debug:
+      print "subject: ", subject
     if not(subject is None):
       self.found=True
     if self.required and not(self.found):
@@ -64,44 +74,56 @@ class StructParser:
     if self.name in d:
       v=d[self.name]
       if not(self.typeokay(v)):
-        raise "StructParser instance %s found %s, but not of correct type" %  (self.__class__.__name__,self.name)
+        raise Exception("StructParser instance %s found %s, but not of correct type" %  (self.__class__.__name__,self.name))
       self.found=True     
       return v
     else:
       self.found=False
       return None
     
-  def parseChildren(self,context,contextcounter):
+  def parseChildren(self,context,contextcounter,subject):
     resolved=[]
-    for i in length(self.children):
+    okay = True
+    for i in range(len(self.children)):
       cp = self.children[i]
-      cp.parse(append(subject,context),append(i,contextcounter))
+      cp.parseDict(append(subject,context),append(i,contextcounter))
       okay = okay and cp.okay
       resolved.append(cp.resolved)
-    for k in keys(subject):
+    for k in subject.keys():
       okay = okay and k in resolved
       if not(k in resolved):
-        raise "Unknown thing " , subject[k]
-    self.resolved = name
-    self.okay = self.okay
+        raise Exception("Unknown thing %s - only these are allowed: %s" % (k,resolved))
+    self.resolved = self.name
+    self.okay = okay
+
+
+class Top:
+  def __init__(self,*args):
+    self.args=args
+  def parse(self,tree):
+    tree={'root':tree}
+    l=Leaf('root',*self.args)
+    l.parseDict([tree],[0])
 
 class List(StructParser):
   def typeokay(self,v):
     return isinstance(v,types.ListType)
 
-  def parse(self,context,contextcounter,subject):
+  def parseSubject(self,context,contextcounter,subject):
     d=context[0]
-    for j in length(subject):
-      parseChildren(append(subject,context),append(j,contextcounter))
+    for j in range(len(subject)):
+      self.parseChildren(append(subject[j],context),append(j,contextcounter),subject[j])
+
 
 class Leaf(StructParser):
   def typeokay(self,v):
-    return isinstance(v,types.DistType)
+    return isinstance(v,types.DictType)
 
   def parseSubject(self,context,contextcounter,subject):
     d=context[0]
     resolved=[]
-    self.parseChildren(context,contextcounter)
+    self.parseChildren(context,contextcounter,subject)
+
 
 class Att(StructParser):
   def typeokay(self,v):
@@ -115,3 +137,5 @@ class Att(StructParser):
     if self.found or not(self.required):
       self.okay = True
       self.resolved = self.name
+    else:
+      raise Exception("Required attribute %s not found in %d" % (self.name,subject))
