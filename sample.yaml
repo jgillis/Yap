@@ -1,0 +1,14 @@
+foo:
+  bar: 123
+  baz: 123
+  ike:
+    - i: 4
+      j: 5
+      k: 6
+    - i: 1
+      j: 2
+    - k: 7
+bar:
+  - name: a
+    description: b
+  - name: a
