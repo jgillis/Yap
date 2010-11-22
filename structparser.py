@@ -63,7 +63,7 @@ class StructParser:
     if not(subject is None):
       self.found=True
     if self.required and not(self.found):
-        raise BaseException("Required dict entry not found: expecting %s " %  self.name)
+        raise BaseException("Required dict entry '%s' not found in %s " %  (self.name,context))
     if not(self.required) and not(self.found) and not(self.defaulter is None):
       d[self.name]=self.defaulter(context,contextcounter)
     if self.found:
@@ -112,7 +112,7 @@ class List(StructParser):
   def parseSubject(self,context,contextcounter,subject):
     d=context[0]
     for j in range(len(subject)):
-      self.parseChildren(append(subject[j],context),append(j,contextcounter),subject[j])
+      self.parseChildren(append([subject[j],subject],context),append(j,contextcounter),subject[j])
 
 
 class Leaf(StructParser):
