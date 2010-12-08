@@ -66,6 +66,7 @@ class StructParser:
         raise BaseException("Required dict entry '%s' not found in %s " %  (self.name,context))
     if not(self.required) and not(self.found) and not(self.defaulter is None):
       d[self.name]=self.defaulter(context,contextcounter)
+      self.resolved = self.name
     if self.found:
       self.parseSubject(context,contextcounter,subject)
 
@@ -86,6 +87,7 @@ class StructParser:
     okay = True
     for i in range(len(self.children)):
       cp = self.children[i]
+      cp.debug=self.debug
       cp.parseDict(append(subject,context),append(i,contextcounter))
       okay = okay and cp.okay
       resolved.append(cp.resolved)
@@ -100,9 +102,10 @@ class StructParser:
 class Top:
   def __init__(self,*args):
     self.args=args
-  def parse(self,tree):
+  def parse(self,tree,debug=False):
     tree={'root':tree}
     l=Leaf('root',*self.args)
+    l.debug = debug
     l.parseDict([tree],[0])
 
 class List(StructParser):
@@ -126,6 +129,7 @@ class Leaf(StructParser):
 
 
 class Att(StructParser):
+  resolved=None
   def typeokay(self,v):
     return not(isinstance(v,types.DictType))
 
