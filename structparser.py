@@ -64,7 +64,7 @@ class StructParser:
       self.found=True
     if self.required and not(self.found):
         raise BaseException("Required dict entry '%s' not found in %s " %  (self.name,context))
-    if not(self.required) and not(self.found) and not(self.defaulter is None):
+    if not(self.required) and not(self.found) and hasattr(self,"defaulter") and not(self.defaulter is None):
       d[self.name]=self.defaulter(context,contextcounter)
       self.resolved = self.name
     if self.found:
